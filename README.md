@@ -106,6 +106,93 @@ bash setup.sh
 open http://localhost:8888
 ```
 
+## Try it out
+
+After setup completes and port-forwards are running:
+
+### 1. Trigger Tower and RIA builds
+
+The platform services need to be built before they can serve requests:
+
+```bash
+.hack/trigger-build.sh platform/tower
+.hack/trigger-build.sh platform/ria
+```
+
+Wait for both pipelines to complete (check the Tekton Dashboard at http://localhost:9097 or run `kubectl get pipelineruns -A`). Then restart the deployments to pick up the new images:
+
+```bash
+kubectl rollout restart deployment/tower -n tower-stage
+kubectl rollout restart deployment/ria -n ria-stage
+```
+
+### 2. Register a component
+
+Open Tower at http://localhost:8888 and click **Register Component**:
+
+| Field | Value |
+|-------|-------|
+| Name | `sample-app-alpha` |
+| Description | `Sample Python service` |
+| Kind | Service |
+| Stack | Python Service |
+| Owner | team-alpha |
+| Repository Name | `sample-app` |
+| Availability Target | 99.9 |
+| Window | 30d |
+| Requires PostgreSQL | checked (stage: 200Mi/1 replica, prod: 500Mi/2 replicas) |
+
+### 3. Watch RIA reconcile
+
+Within seconds, RIA will generate all the infrastructure. Check the logs:
+
+```bash
+kubectl logs -n ria-stage deployment/ria --tail=15
+```
+
+You should see: `generating gitops-deploy artifacts for "sample-app-alpha"` → `gitops-deploy push complete` → `reconciliation complete`.
+
+### 4. Sync ArgoCD
+
+ArgoCD will auto-sync, but you can speed it up. Check the ArgoCD UI at https://localhost:8080 — you should see `sample-app-alpha-stage`, `sample-app-alpha-prod`, and `sample-app-alpha-ci` applications appear.
+
+### 5. Build the sample app
+
+```bash
+.hack/trigger-build.sh team-alpha/sample-app
+```
+
+Wait for the pipeline, then restart the deployment:
+
+```bash
+kubectl rollout restart deployment/sample-app-alpha -n sample-app-alpha-stage
+```
+
+### 6. Verify everything works
+
+```bash
+# Port-forward sample apps
+.hack/portforward-sample-apps.sh
+
+# Test endpoints
+curl http://localhost:9001/          # {"app":"sample-app","team":"team-alpha","version":"1.0.0"}
+curl http://localhost:9001/health    # {"status":"ok"}
+curl http://localhost:9001/db-health # {"status":"ok","visits":1}
+curl http://localhost:9001/metrics   # Prometheus metrics
+```
+
+### 7. Check observability
+
+- **Prometheus** (http://localhost:9090): query `up{job="sample-app-alpha"}` — should show targets as up
+- **Grafana** (http://localhost:3001): Explore → Prometheus → query `http_requests_total{namespace="sample-app-alpha-stage"}`
+- **Tower SLO tab**: click on the component in Tower → SLO tab shows availability and error budget
+
+### 8. Run a full status check
+
+```bash
+.hack/check-status.sh
+```
+
 ## Services & ports
 
 | Service | URL | Credentials |
