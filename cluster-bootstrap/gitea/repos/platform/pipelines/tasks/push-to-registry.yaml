@@ -1,0 +1,15 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: push-to-registry
+spec:
+  params:
+    - name: source_image
+      type: string
+    - name: destination_image
+      type: string
+  steps:
+    - name: push
+      image: gcr.io/go-containerregistry/crane:debug
+      script: |
+        crane copy $(params.source_image) $(params.destination_image) --insecure

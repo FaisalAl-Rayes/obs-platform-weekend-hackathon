@@ -1,0 +1,45 @@
+gitea:
+  admin:
+    username: gitea_admin
+    password: admin1234
+    email: admin@obs-platform.local
+
+  config:
+    database:
+      DB_TYPE: sqlite3
+    server:
+      DOMAIN: localhost
+      ROOT_URL: http://localhost:3000
+      DISABLE_SSH: true
+      LFS_START_SERVER: false
+    service:
+      DISABLE_REGISTRATION: true
+      REQUIRE_SIGNIN_VIEW: false
+    webhook:
+      ALLOWED_HOST_LIST: "*"
+    repository:
+      DEFAULT_BRANCH: main
+
+service:
+  http:
+    type: ClusterIP
+    clusterIP: ""
+
+persistence:
+  enabled: true
+  size: 2Gi
+
+postgresql:
+  enabled: false
+
+postgresql-ha:
+  enabled: false
+
+redis-cluster:
+  enabled: false
+
+redis:
+  enabled: false
+
+test:
+  enabled: false

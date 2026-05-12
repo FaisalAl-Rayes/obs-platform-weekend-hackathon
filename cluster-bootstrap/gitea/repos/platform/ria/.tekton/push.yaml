@@ -1,0 +1,41 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: ria-push
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/task: "http://gitea-http.gitea.svc:3000/platform/pipelines/raw/branch/main/tasks/go-build.yaml"
+spec:
+  pipelineSpec:
+    tasks:
+      - name: build
+        taskRef:
+          name: go-build
+        params:
+          # {{ repo_url }} resolves to http://localhost:3000/... (from Gitea's ROOT_URL)
+          # which is unreachable from inside the cluster. Use the in-cluster address instead.
+          - name: repo_url
+            value: "http://gitea-http.gitea.svc:3000/{{ repo_owner }}/{{ repo_name }}"
+          - name: revision
+            value: "{{ revision }}"
+          # Kaniko runs inside a pod so it uses the in-cluster DNS name.
+          # The deployment image uses localhost:5000 instead — see deployment.yaml for why.
+          - name: image
+            value: "registry.kube-system.svc.cluster.local/ria:{{ revision }}"
+          - name: image_latest
+            value: "registry.kube-system.svc.cluster.local/ria:latest"
+        workspaces:
+          - name: source
+            workspace: shared
+    workspaces:
+      - name: shared
+  workspaces:
+    - name: shared
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

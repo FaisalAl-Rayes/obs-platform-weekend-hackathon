@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tower-set
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - name: in-cluster
+            nameNormalized: tower
+            repoURL: http://gitea-http.gitea.svc:3000/platform/gitops-deploy.git
+            path: components/tower/overlays/prod
+            namespace: tower-prod
+            environment: prod

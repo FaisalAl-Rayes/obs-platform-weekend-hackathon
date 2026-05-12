@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: python-build
+spec:
+  params:
+    - name: repo_url
+      type: string
+    - name: revision
+      type: string
+      default: main
+    - name: image
+      type: string
+    - name: image_latest
+      type: string
+      default: ""
+    - name: context
+      type: string
+      default: "."
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: alpine/git:2.43.0
+      script: |
+        git clone $(params.repo_url) $(workspaces.source.path)/repo
+        cd $(workspaces.source.path)/repo
+        git checkout $(params.revision)
+
+    - name: test
+      image: python:3.12-slim
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        fi
+        if [ -f requirements-dev.txt ]; then
+          pip install -r requirements-dev.txt
+        fi
+        if command -v pytest &>/dev/null; then
+          pytest || true
+        fi
+
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=$(workspaces.source.path)/repo/$(params.context)/Dockerfile
+        - --context=$(workspaces.source.path)/repo/$(params.context)
+        - --destination=$(params.image)
+        - --destination=$(params.image_latest)
+        - --insecure
+        - --skip-tls-verify

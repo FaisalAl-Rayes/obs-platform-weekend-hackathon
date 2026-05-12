@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tower
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tower
+  template:
+    metadata:
+      labels:
+        app: tower
+    spec:
+      containers:
+        - name: tower
+          # localhost:5000 because containerd pulls images on the node, not in a pod.
+          # The node uses host DNS which can't resolve *.svc.cluster.local.
+          # Minikube's registry addon proxies localhost:5000 on the node to the
+          # registry service. Kaniko (in .tekton/) uses registry.kube-system.svc.cluster.local
+          # instead because it runs inside a pod where CoreDNS resolves cluster names.
+          image: localhost:5000/tower:latest
+          # Always pull to pick up new builds tagged as :latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: GITEA_URL
+              value: "http://gitea-http.gitea.svc:3000"
+            - name: GITEA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tower-gitea-creds
+                  key: username
+            - name: GITEA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tower-gitea-creds
+                  key: password
+            - name: GITEA_ORG
+              value: "platform"
+            - name: GITEA_REPO
+              value: "service-catalog"
+            - name: INTERNAL_URL
+              value: "http://localhost:3000"
+            - name: PROMETHEUS_URL
+              value: "http://monitoring-kube-prometheus-prometheus.monitoring.svc:9090"
+          readinessProbe:
+            httpGet:
+              path: /api/components
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10

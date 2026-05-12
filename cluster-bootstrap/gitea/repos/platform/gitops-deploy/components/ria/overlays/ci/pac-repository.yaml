@@ -1,0 +1,18 @@
+apiVersion: pipelinesascode.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: ria
+  namespace: ria-ci
+spec:
+  # url must match Gitea's ROOT_URL (http://localhost:3000) because that's what
+  # Gitea puts in webhook payloads. PAC matches incoming webhooks against this field.
+  # git_provider.url uses the in-cluster address so PAC can call Gitea's API from
+  # inside the cluster. This split is a minikube quirk — in a real environment with
+  # proper DNS, both would be the same.
+  url: http://localhost:3000/platform/ria
+  git_provider:
+    url: http://gitea-http.gitea.svc:3000
+    secret:
+      name: gitea-pac-token
+      key: token
+    user: gitea_admin

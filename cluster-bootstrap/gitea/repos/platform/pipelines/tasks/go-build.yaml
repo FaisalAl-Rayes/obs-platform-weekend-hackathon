@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: go-build
+spec:
+  params:
+    - name: repo_url
+      type: string
+    - name: revision
+      type: string
+      default: main
+    - name: image
+      type: string
+    - name: image_latest
+      type: string
+      default: ""
+    - name: context
+      type: string
+      default: "."
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: alpine/git:2.43.0
+      script: |
+        git clone $(params.repo_url) $(workspaces.source.path)/repo
+        cd $(workspaces.source.path)/repo
+        git checkout $(params.revision)
+
+    - name: test
+      image: golang:1.25
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        go test ./...
+
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=$(workspaces.source.path)/repo/$(params.context)/Dockerfile
+        - --context=$(workspaces.source.path)/repo/$(params.context)
+        - --destination=$(params.image)
+        - --destination=$(params.image_latest)
+        - --insecure
+        - --skip-tls-verify

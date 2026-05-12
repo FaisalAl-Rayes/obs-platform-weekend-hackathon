@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tower
+  labels:
+    obs-platform/component: tower
+    obs-platform/team: platform
+    obs-platform/pac-enabled: "true"

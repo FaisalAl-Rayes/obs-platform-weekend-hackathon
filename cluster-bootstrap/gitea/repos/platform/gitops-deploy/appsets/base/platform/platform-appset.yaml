@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-set
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - name: in-cluster
+            nameNormalized: platform
+            repoURL: http://gitea-http.gitea.svc:3000/platform/gitops-deploy.git
+            path: components/platform/base
+            namespace: argocd
+            environment: prod
+  template:
+    metadata:
+      name: '{{nameNormalized}}-{{environment}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

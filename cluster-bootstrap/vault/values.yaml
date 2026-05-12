@@ -1,0 +1,21 @@
+server:
+  dev:
+    enabled: true
+    devRootToken: "obs-platform-root-token"
+
+  standalone:
+    enabled: true
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+ui:
+  enabled: true
+
+injector:
+  enabled: true

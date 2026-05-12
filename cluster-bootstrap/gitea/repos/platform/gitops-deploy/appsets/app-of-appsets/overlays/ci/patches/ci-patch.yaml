@@ -1,0 +1,8 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-appsets
+  namespace: argocd
+spec:
+  source:
+    path: appsets/overlays/ci

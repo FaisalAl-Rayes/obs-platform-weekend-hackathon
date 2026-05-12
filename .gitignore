@@ -1,0 +1,9 @@
+# Helm charts downloaded by kustomize --enable-helm
+**/charts/
+
+# Node
+**/node_modules/
+**/.next/
+
+# Go
+**/vendor/

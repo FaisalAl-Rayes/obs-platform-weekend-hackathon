@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ria
+  template:
+    metadata:
+      labels:
+        app: ria
+    spec:
+      containers:
+        - name: ria
+          # localhost:5000 because containerd pulls images on the node, not in a pod.
+          # The node uses host DNS which can't resolve *.svc.cluster.local.
+          # Minikube's registry addon proxies localhost:5000 on the node to the
+          # registry service. Kaniko (in .tekton/) uses registry.kube-system.svc.cluster.local
+          # instead because it runs inside a pod where CoreDNS resolves cluster names.
+          image: localhost:5000/ria:latest
+          # Always pull to pick up new builds tagged as :latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: GITEA_URL
+              value: "http://gitea-http.gitea.svc:3000"
+            - name: GITEA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ria-gitea-creds
+                  key: username
+            - name: GITEA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ria-gitea-creds
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
